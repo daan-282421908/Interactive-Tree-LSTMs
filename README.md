@@ -34,13 +34,9 @@ You can convert any version of BioBERT into PyTorch with [this](https://github.c
 ## Example
 For instance, to train BioBERT on the NER dataset (NCBI-disease), run as:
 
-```bash
-# Pre-process NER datasets
-cd named-entity-recognition
-./preprocess.sh
 
 # Choose dataset and run
-export DATA_DIR=../datas
+export DATA_DIR=../data
 export ENTITY=NCBI-disease
 python run_ner.py \
     --data_dir ${DATA_DIR}/${ENTITY} \
