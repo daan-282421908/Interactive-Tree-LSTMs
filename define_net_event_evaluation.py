@@ -1,17 +1,11 @@
-import os
-import pickle
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
-from torch.autograd import Variable
-
 
 class Event_Evaluation(nn.Module):
     def __init__(self):
         super(Event_Evaluation, self).__init__()
         path_ = os.path.abspath('.')
-        f = open(path_+'/relation_index', 'rb')
-        self.relation_index = pickle.load(f)
+        f = open(path+'r')
 
         self.role_types = len(self.relation_index)+1
         self.role_size = 8
