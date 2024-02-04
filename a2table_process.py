@@ -2,8 +2,7 @@ import os
 import csv
 
 path_ = os.path.abspath('.')
-a2_path = path_ + '/a2'
-target_path = path_ + '/a2_modification_table'
+
 
 for r,_,fs in os.walk(a2_path):
     for f in fs:
