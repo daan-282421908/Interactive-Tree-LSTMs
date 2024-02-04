@@ -21,7 +21,6 @@ class encode_model(nn.Module):
 
 class Child_sum_TreeLSTMCell(nn.Module):
     def __init__(self, x_size, h_size):
-        super(TreeLSTMCell, self).__init__()
         self.W_iou = nn.Linear(x_size, 3 * h_size, bias=False)
         self.U_iou = nn.Linear(2 * h_size, 3 * h_size, bias=False)
         self.b_iou = nn.Parameter(th.zeros(1, 3 * h_size))
@@ -103,59 +102,3 @@ class Trigger_Recognition(nn.Module):
         event_index = torch.LongTensor([[event_index]])
         event_emb = self.event_embedding(Variable(event_index))
         return event_emb
-
-class argument_Classification(nn.Module):
-    def __init__(self, relation_dim):
-        super(Relation_Classification, self).__init__()
-        tmp_dim = 128
-        self.BiLSTM_hidden_size = 2*128 
-        self.relation_dim = relation_dim
-        self.ner_embedding = 16
-        self.position_dim = 8
-        self.max_position = 16
-        self.conv_out_dim = 128
-
-        self.position_embedding = nn.Embedding(2*self.max_position+1, self.position_dim)
-        self.empty_embedding = nn.Embedding(1, self.BiLSTM_hidden_size+2*self.ner_embedding) #+2*self.ner_embedding
-        self.max_pooling = nn.AdaptiveMaxPool1d(1)
-
-        self.linear = nn.Linear(6*self.ner_embedding+3*self.BiLSTM_hidden_size+self.position_dim+self.conv_out_dim, tmp_dim)
-        self.linear2 = nn.Linear(tmp_dim, self.relation_dim)
-
-        self.softmax = nn.LogSoftmax(dim=1)
-        self.dropout = nn.Dropout(p=0.2)
-
-    def forward(self, src,middle,dst,reverse_flag,event_flag):
-        length_middle = torch.LongTensor(1,1).zero_()
-        length_middle[0][0] = min(middle.size()[0]+1, self.max_position)
-        if reverse_flag:
-            length_middle[0][0] = - length_middle[0][0]
-        length_middle[0][0] = length_middle[0][0] + self.max_position
-        pe_middle = self.position_embedding(Variable(length_middle))
-        pe_middle = pe_middle.view(1,-1,1)
-
-        src = src.permute(1,2,0) 
-        src = self.max_pooling(src) 
-        dst = dst.permute(1,2,0)
-        dst = self.max_pooling(dst)
-
-        if middle.size()[0] == 0 :
-            middle = self.empty_embedding(torch.LongTensor([[0]]))
-        middle = middle.permute(1,2,0)
-        middle_p = self.max_pooling(middle)
-
-        if not reverse_flag :
-            middle_c = self.conv_3(middle)
-        else:
-            middle_c = self.conv_3r(middle)
-
-        middle_c = self.max_pooling(middle_c)
-
-        x = torch.cat((src,middle_p,middle_c,dst,pe_middle),1) 
-        x = x.view(1,-1) 
-        x = self.dropout(x)
-        x = F.leaky_relu(self.linear(x)) 
-        x = self.linear2(x)
-        x = self.softmax(x)
-
-        return x
