@@ -1,9 +1,3 @@
-'''
-Modified from pytorch/torch/utils/data/dataloader.py 
-Only changed the function default_collate()
-The original default_collate() puts each data field into a tensor with outer dimension batch size,
-but here default_collate() only puts them into a list.
-'''
 import torch
 import torch.multiprocessing as multiprocessing
 from torch.utils.data.sampler import SequentialSampler, RandomSampler
@@ -50,7 +44,6 @@ def _pin_memory_loop(in_queue, out_queue, done_event):
         else:
             out_queue.put((idx, batch))
 
-
 numpy_type_map = {
     'float64': torch.DoubleTensor,
     'float32': torch.FloatTensor,
@@ -62,10 +55,8 @@ numpy_type_map = {
     'uint8': torch.ByteTensor,
 }
 
-
 def default_collate(batch): # modified here
     return batch
-
 
 def pin_memory_batch(batch):
     if torch.is_tensor(batch):
@@ -78,7 +69,6 @@ def pin_memory_batch(batch):
         return [pin_memory_batch(sample) for sample in batch]
     else:
         return batch
-
 
 class DataLoaderIter(object):
     def __init__(self, loader):
@@ -191,11 +181,6 @@ class DataLoaderIter(object):
         return batch
 
     def __getstate__(self):
-        # TODO: add limited pickling support for sharing an iterator
-        # across multiple threads for HOGWILD.
-        # Probably the best way to do this is by moving the sample pushing
-        # to a separate thread and then just sharing the data queue
-        # but signalling the end is tricky without a non-blocking API
         raise NotImplementedError("DataLoaderIterator cannot be pickled")
 
     def _shutdown_workers(self):
@@ -210,29 +195,6 @@ class DataLoaderIter(object):
             self._shutdown_workers()
 
 class DataLoader(object):
-    """
-    Data loader. Combines a dataset and a sampler, and provides
-    single- or multi-process iterators over the dataset.
-
-    Arguments:
-        dataset (Dataset): dataset from which to load the data.
-        batch_size (int, optional): how many samples per batch to load
-            (default: 1).
-        shuffle (bool, optional): set to ``True`` to have the data reshuffled
-            at every epoch (default: False).
-        sampler (Sampler, optional): defines the strategy to draw samples from
-            the dataset. If specified, the ``shuffle`` argument is ignored.
-        num_workers (int, optional): how many subprocesses to use for data
-            loading. 0 means that the data will be loaded in the main process
-            (default: 0)
-        collate_fn (callable, optional)
-        pin_memory (bool, optional)
-        drop_last (bool, optional): set to ``True`` to drop the last incomplete batch,
-            if the dataset size is not divisible by the batch size. If False and
-            the size of dataset is not divisible by the batch size, then the last batch
-            will be smaller. (default: False)
-    """
-
     def __init__(self, dataset, batch_size=1, shuffle=False, sampler=None, num_workers=0,
                  collate_fn=default_collate, pin_memory=False, drop_last=False):
         self.dataset = dataset
