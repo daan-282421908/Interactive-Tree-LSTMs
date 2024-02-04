@@ -4,173 +4,103 @@ import csv
 from nltk import sent_tokenize
 
 
-def get_position_dict(file_path):
-    
-    src = open(file_path,'r')
-    title = src.readline()
-    abstract = src.readline()
-    if abstract == '\n' : # patch for MLEE
-        abstract = src.readline()
-    src.close()
+def get_pos(file_path):
+    with open(file_path,'r') as f:
+        title = f.readline()
+    with open(file_path,'r') as f:
+        abstract = f.readline()
+       
+    if asf == '\n':
+        asf = src.readline() 
 
     title = title.replace('\n','')
     abstract = abstract.replace('\n','')
-    sentence_list = [title]
-    sentence_list.extend(sent_tokenize(abstract))
+    list.append(title)
+    list.extend(sent_tokenize(abstract))
     
-    position = 0
-    position2word = dict()
-    position2end = set()
-    
-    for i,sentence in enumerate(sentence_list) :
-        # split with [ /-().,:] but reserve them
-        words = re.split('([ -/().,:;])',sentence)
- 
-        for j,w in enumerate(words) :
-            if w != ' ' and w != '' :
-                position2word[position] = w
-
+    for i,s in enumerate(list) :
+        ids = re.split('([ -/().,:;])',s)
+        for j,w in enumerate(ids) :
+            if w != ' ' and w != '':
+                position_dic_word[position] = w
                 if i != 0 :
                     if j == len(words)-2 :
-                        position2end.add(position)
+                        end.add(position)
                 else :
                     if j >= len(words)-4 and w == '.' :
-                        position2end.add(position) # special for title
-
-            position = position + len(w)
+                        position_dic_end.add(position)
+            position += len(w)
+        position += 1
         
-        # there is a \n behind the sentences in title and ' ' in abstract
-        position = position + 1 # 1 for CG/PC, 2 for MLEE
-        
-    return position2word,position2end
+    return position_of_word,position_of_end
 
-
-def get_entity(file_path,position2word):
-    
-    src = open(file_path,'r')
-    entity_notation = dict()
-    entity_index = dict()
-
-    line = src.readline()
-    while line:
-        words = re.split('[ \t]',line)
-        index = words[0]
-        type_ = words[1]
-        start = int(words[2])
-        end = int(words[3])
+def get_event_info(file_path,position_of_word):
+    with open(file_path,'r') as f:
+        event_notation = dict()
+        event_index = dict()
         
-        i = 0
-        # some entity is a part of word
-        while position2word[i+1][0] <= start:
-            i = i + 1
-        start = position2word[i][0]
-        
-        entity_list = []
-        for p2w in position2word:
-            p = p2w[0]
-            if (p >= start and p < end):
-                entity_list.append(p)
-        
-        if len(entity_list) == 1 :
-            entity = entity_list[0]
-            entity_notation[entity] = type_ + '-Unit'
-        else:
-            entity = entity_list[0]
-            entity_notation[entity] = type_ + '-Begin'
-            entity = entity_list[-1]
-            entity_notation[entity] = type_ + '-Last'
-            for i in range(1,len(entity_list)-1):
-                entity = entity_list[i]
-                entity_notation[entity] = type_ + '-Inside'
-
-        for entity in entity_list:
-            entity_index[entity] = index
-            
         line = src.readline()
-        
-    src.close()
-           
-    return entity_notation,entity_index
-
-
-def get_event(file_path,position2word):
-    
-    src = open(file_path,'r')
-    event_notation = dict()
-    event_index = dict()
-    
-    line = src.readline()
-  
-    while line :
-        if line[0] != 'T' :
-            line = src.readline()
-            continue
       
-        words = re.split('[ \t]',line)
-        index = words[0]
-        type_ = words[1]
-        start = int(words[2])
-        end = int(words[3])
-
-        i = 0
-        while position2word[i+1][0] <= start : # some event is a part of word
-            i = i + 1
-        start = position2word[i][0]
-
-        event_list = []
-        for p2w in position2word:
-            p = p2w[0]
-            if ( p >= start and p < end ) :
+        while line:
+            if line[0] != 'T' :
+                line = src.readline()
+                continue
+          
+            words = re.split('[ \t]',line)
+            index = words[0]
+            type_ = words[1]
+            start = int(words[2])
+            end = int(words[3])
+    
+            i = 0
+            while position2word[i+1][0] <= start:
+                i += 1
+            start = position2word[i][0]
+    
+            event_list = []
+            for p2w in position2word:
+                p = p2w[0]
+                if ( p >= start and p < end ) :
                 event_list.append(p)
 
-        if len(event_list) == 1 :
-            event = event_list[0]
-            event_notation[event] = type_ + '-Unit'
-        else :
-            event = event_list[0]
-            event_notation[event] = type_ + '-Begin'
-            event = event_list[-1]
-            event_notation[event] = type_ + '-Last'
-            for i in range(1,len(event_list)-1):
-                event = event_list[i]
-                event_notation[event] = type_ + '-Inside'
-
-        for event in event_list :
-            event_index[event] = index
-            
-        line = src.readline()
-        
-    src.close()
-           
+            if len(event_list) == 1 :
+                event = event_list[0]
+                event_notation[event] = type_ + '-Unit'
+            else :
+                event = event_list[0]
+                event_notation[event] = type_ + '-Begin'
+                event = event_list[-1]
+                event_notation[event] = type_ + '-Last'
+                for i in range(1,len(event_list)-1):
+                    event = event_list[i]
+                    event_notation[event] = type_ + '-Inside'
+            for event in event_list :
+                event_index[event] = index
+        line = f.readline()
     return event_notation, event_index
 
+txt_path = os.path.abspath('.') + '/txt' 
 
-if __name__ == '__main__':
+for fpath,_,files in os.walk(txt_path):
+    for fl in files:
+        file_path = os.path.join(fpath,fl)
+        position_of_word,position_of_end = get_pos(file_path)
 
-    path_ = os.path.abspath('.')
-    txt_path = path_ + '/txt' 
+        for p in sorted(position2word.keys()):
+            position2word = (p,position2word[p])
 
-    for fpath,_,files in os.walk(txt_path):
-        for fl in files:
-            file_path = os.path.join(fpath,fl)
-            position2word,position2end = get_position_dict(file_path)
-           
-            position2word = [(p,position2word[p]) for p in sorted(position2word.keys())] 
+        file_path = file_path.replace('txt','a1')
+        entity_notation,entity_index = get_pos(file_path,position2word)
 
-            file_path = file_path.replace('txt','a1')
-            entity_notation,entity_index = get_entity(file_path,position2word)
+        file_path = file_path.replace('a1','a2')
+        event_notation,event_index = get_event_info(file_path,position2word) #dict(),dict()
+        
+        file_path = file_path.replace('/a2', '/table')
+        file_path = file_path.replace('.a2', '.csv')
 
-            file_path = file_path.replace('a1','a2')
-            event_notation,event_index = get_event(file_path,position2word) #dict(),dict()
-            
-            file_path = file_path.replace('/a2', '/table')
-            file_path = file_path.replace('.a2', '.csv')
-
-            csvfile = open(file_path,'w')
+        with open(file_path,'w') as f:
             writer = csv.writer(csvfile)
-            writer.writerow(['position', 'word', 'entity_index', 'entity_notation',
-                             'event_index', 'event_notation', 'is_end'])
-            csvfile.close()
+            writer.writerow(['position', 'word', 'entity_index', 'entity_notation','event_index', 'event_notation', 'is_end'])
 
             csvfile = open(file_path,'a+')
             writer = csv.writer(csvfile)
