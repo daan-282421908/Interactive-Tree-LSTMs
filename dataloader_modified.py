@@ -7,29 +7,8 @@ but here default_collate() only puts them into a list.
 import torch
 import torch.multiprocessing as multiprocessing
 from torch.utils.data.sampler import SequentialSampler, RandomSampler
-import collections
 import math
 import sys
-import traceback
-import threading
-
-if sys.version_info[0] == 2:
-    import Queue as queue
-    string_classes = basestring
-else:
-    import queue
-    string_classes = (str, bytes)
-
-_use_shared_memory = False
-"""Whether to use shared memory in default_collate"""
-
-class ExceptionWrapper(object):
-    "Wraps an exception plus traceback to communicate across threads"
-
-    def __init__(self, exc_info):
-        self.exc_type = exc_info[0]
-        self.exc_msg = "".join(traceback.format_exception(*exc_info))
-
 
 def _worker_loop(dataset, index_queue, data_queue, collate_fn):
     global _use_shared_memory
