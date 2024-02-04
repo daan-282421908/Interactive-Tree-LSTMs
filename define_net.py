@@ -2,16 +2,8 @@ import os
 import pickle
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
-from torch.autograd import Variable
 
-
-path_ = os.path.abspath('.')
-f = open(path_+'/event_index', 'rb')
-event_index = pickle.load(f)
-
-
-class encode(nn.Module):
+class encode_model(nn.Module):
     def __init__(self, char_dim):
         super(encode, self).__init__()
         embedding_size = 16
@@ -20,18 +12,14 @@ class encode(nn.Module):
         padding = 2
         self.conv_out_channel = 64
         self.embedding = nn.Embedding(char_dim, embedding_size)
-        self.conv = nn.Conv1d(embedding_size, self.conv_out_channel, kernel, stride, padding)
-        self.pooling = nn.AdaptiveMaxPool1d(1)
-
+        self.tree_lstm = nn.Child_sum_treeLSTM()
+        
     def forward(self, x):
         x = self.embedding(x) 
         x = x.permute(0,2,1)
-        x = self.conv(x)
-        x = self.pooling(x)
-        x = x.view(1,-1,self.conv_out_channel) 
         return x
 
-class treeLSTM(nn.Module):
+class Child_sum_treeLSTM(nn.Module):
     def __init__(self, word_dim, entity_dim):
         super(treeLSTM, self).__init__()
         self.hidden_size = 128
@@ -118,12 +106,11 @@ class Trigger_Recognition(nn.Module):
         return ner_output, ner_emb, ner_index
 
     def get_event_embedding(self, event_index):
-
         event_index = torch.LongTensor([[event_index]])
         event_emb = self.event_embedding(Variable(event_index))
         return event_emb
 
-class Relation_Classification(nn.Module):
+class argument_Classification(nn.Module):
     def __init__(self, relation_dim):
         super(Relation_Classification, self).__init__()
         tmp_dim = 128
@@ -137,7 +124,6 @@ class Relation_Classification(nn.Module):
         self.position_embedding = nn.Embedding(2*self.max_position+1, self.position_dim)
         self.empty_embedding = nn.Embedding(1, self.BiLSTM_hidden_size+2*self.ner_embedding) #+2*self.ner_embedding
         self.max_pooling = nn.AdaptiveMaxPool1d(1)
-
 
         self.linear = nn.Linear(6*self.ner_embedding+3*self.BiLSTM_hidden_size+self.position_dim+self.conv_out_dim, tmp_dim)
         self.linear2 = nn.Linear(tmp_dim, self.relation_dim)
