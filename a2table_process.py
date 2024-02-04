@@ -1,8 +1,6 @@
 import os
 import csv
-
 path_ = os.path.abspath('.')
-
 
 for r,_,fs in os.walk(a2_path):
     for f in fs:
@@ -36,6 +34,3 @@ for r,_,fs in os.walk(a2_path):
             writer.writerow([m_id,m_type,dt])
             
             line = file_a2.readline()
-
-        file_a2.close()
-        csvfile.close()
