@@ -2,48 +2,16 @@ import os
 import sys
 import math
 import torch
-import random
-import gensim
-import pickle
-import collections
-import numpy as np
-import torch.nn as nn
-from torch.nn import init
-import torch.optim as optim
-# import torch.nn.init as init
-from random import uniform
-from torch.autograd import Variable
-from sentence_set import Sentence_Set
-from dataloader_modified import DataLoader
-from define_net_pretrain import Char_CNN_pretrain
-from define_net import Char_CNN_encode, BiLSTM, Trigger_Recognition, Relation_Classification
-from define_net_event_evaluation import *
-from entity_event_dict_CG import *
-from generate_utils import *
-from word_set import event_to_onehot
-from sklearn.metrics import roc_auc_score as auc
 
-def load_pretrain_vector(word_index, word_embedding):
+def load_pretrain_embeding(index, embedding):
     filename = os.path.abspath('.') + '/network/myword2vec'
     my_word2vec = gensim.models.Word2Vec.load(filename)
     not_found = 0
-
-    for key in word_index.keys():
-        try:
-            # pretrain_vector = []
-            pretrain_vector = my_word2vec.wv[key].tolist()
-            index = word_index[key]
-            # for i in range(0,len(pretrain_vector)):
-            #    pretrain_vector[i] = word_embedding[index][i]*0.99 + pretrain_vector[i]*0.01
-            # pretrain_vector = word_embedding[index]
-            word_embedding[index] = pretrain_vector[:]
-        except Exception as e:
-            # print e
-            not_found = not_found + 1
-
-    # print 'There are %d words not found in Word2Vec.'%not_found
+    for key in index.keys():
+	pretrain_vector = my_word2vec.wv[key].tolist()
+	index = word_index[key]
+	embedding[index] = pretrain_vector[:]
     return word_embedding
-
 
 def has_same_set(seta, setb_all):
     seta = set(seta)
@@ -69,7 +37,7 @@ def has_same_set(seta, setb_all):
     return False, 'None'
 
 
-def is_same_set(seta, setb):
+def is_one_set(seta, setb):
     for item in seta:
         if not item in setb:
             return False
@@ -81,19 +49,15 @@ def is_same_set(seta, setb):
 
 if __name__ == '__main__':
     path_ = os.path.abspath('.')
-    # number = int(sys.argv[1])
     number = 0
     trainset = Sentence_Set(path_ + '/table/', new_dict=False)  # be True at the first running before the source changed
-    # testset = Sentence_Set(path_ + '/table_test/', new_dict=False)
     char_dim = trainset.get_char_dim()
     word_dim = trainset.get_word_dim()
     entity_dim = trainset.get_entity_dim()
     event_dim = trainset.get_event_dim()
     relation_dim = trainset.get_relation_dim()
 
-    # the length of samples here are different, so we can't directly use DataLoader provided by PyTorch
     trainloader = DataLoader(trainset, batch_size=1, shuffle=True)
-    # testloader = DataLoader(testset, batch_size=1, shuffle=False)
 
     char_cnn = Char_CNN_encode(char_dim)
     bilstm = BiLSTM(word_dim, entity_dim)
@@ -114,32 +78,6 @@ if __name__ == '__main__':
     for p in char_cnn.conv.parameters():
 	p.requires_grad = False
     '''
-    init.xavier_uniform(char_cnn.embedding.weight)
-    init.xavier_uniform(char_cnn.conv.weight)
-    init.xavier_uniform(bilstm.word_embedding.weight)
-    init.xavier_uniform(bilstm.entity_embedding.weight)
-    init.xavier_uniform(bilstm.lstm.weight_ih_l0)
-    # init.xavier_uniform(bilstm.lstm.weight_hh_l0)
-    init.xavier_uniform(bilstm.lstm.weight_ih_l0_reverse)
-    # init.xavier_uniform(bilstm.lstm.weight_hh_l0_reverse)
-    init.xavier_uniform(tr.event_embedding.weight)
-    init.xavier_uniform(tr.linear.weight)
-    init.xavier_uniform(tr.linear2.weight)
-    # init.xavier_uniform(rc.linear.weight)
-    # init.xavier_uniform(rc.linear2.weight)
-    init.xavier_uniform(rc.position_embedding.weight)
-    init.xavier_uniform(rc.empty_embedding.weight)
-    init.xavier_uniform(rc.conv_3.weight)
-    init.xavier_uniform(rc.conv_3r.weight)
-    init.xavier_uniform(ee.role_embedding.weight)
-    init.xavier_uniform(ee.lstm.weight_ih_l0)
-    # init.xavier_uniform(ee.lstm.weight_hh_l0)
-    init.xavier_uniform(ee.lstm.weight_ih_l0_reverse)
-    # init.xavier_uniform(ee.lstm.weight_hh_l0_reverse)
-    init.xavier_uniform(ee.linear1.weight)
-    init.xavier_uniform(ee.linear2.weight)
-    init.xavier_uniform(ee.linearm_1.weight)
-    init.xavier_uniform(ee.linearm_2.weight)
 
     f = open(path_ + '/word_index', 'rb')
     word_index = pickle.load(f)
@@ -217,7 +155,7 @@ if __name__ == '__main__':
         for i, batch in enumerate(trainloader, 0):
             loss = 0
             optimizer.zero_grad()
-            for data in batch:  # due to we have modified the defination of batch, the batch here is a list
+            for data in batch:  
 
                 input_word, input_entity, input_char, target, entity_loc, event_loc, relation, event_para, modification, fname = data
                 input_word, input_entity, target = Variable(input_word), Variable(input_entity), Variable(target.view(-1))  # L of indices
