@@ -19,39 +19,33 @@ class encode_model(nn.Module):
         x = x.permute(0,2,1)
         return x
 
-class Child_sum_treeLSTM(nn.Module):
-    def __init__(self, word_dim, entity_dim):
-        super(treeLSTM, self).__init__()
-        self.hidden_size = 128
-        self.num_hidden = 1
-        embedding_size = 192
-        entity_embedding_size = 16
-        conv_out_channel = 64
-        self.word_embedding = nn.Embedding(word_dim, embedding_size)
-        self.entity_embedding = nn.Embedding(entity_dim, entity_embedding_size)
-        self.lstm = nn.LSTM(embedding_size+entity_embedding_size+conv_out_channel,
-                            self.hidden_size,
-                            self.num_hidden,
-                            bidirectional=True,
-                            dropout=0)
-        self.dropout = nn.Dropout(p=0.0)
+class Child_sum_TreeLSTMCell(nn.Module):
+    def __init__(self, x_size, h_size):
+        super(TreeLSTMCell, self).__init__()
+        self.W_iou = nn.Linear(x_size, 3 * h_size, bias=False)
+        self.U_iou = nn.Linear(2 * h_size, 3 * h_size, bias=False)
+        self.b_iou = nn.Parameter(th.zeros(1, 3 * h_size))
+        self.U_f = nn.Linear(2 * h_size, 2 * h_size)
 
-    def forward(self, inputs, hidden):
-        words, entitys, char_features = inputs
-        length = words.size()[1]
-        word_emb = self.word_embedding(words)
-        word_emb = self.dropout(word_emb)
-        word_emb = word_emb.permute(1,0,2) 
-        entity_emb = self.entity_embedding(entitys) 
-        entity_emb = self.dropout(entity_emb)
-        entity_emb = entity_emb.permute(1,0,2) 
-        input_ = torch.cat((word_emb, entity_emb, char_features), 2) 
-        output, hidden = self.lstm(input_, hidden) 
-        return output, hidden, entity_emb
+    def message_func(self, edges):
+        return {'h': edges.src['h'], 'c': edges.src['c']}
 
-    def initHidden(self,num_layers=2,batch=1):
-        return (Variable(torch.zeros(num_layers*self.num_hidden, batch, self.hidden_size)),
-                Variable(torch.zeros(num_layers*self.num_hidden, batch, self.hidden_size)))
+    def reduce_func(self, nodes):
+        h_cat = nodes.mailbox['h'].view(nodes.mailbox['h'].size(0), -1)
+        f = th.sigmoid(self.U_f(h_cat)).view(*nodes.mailbox['h'].size())
+        c = th.sum(f * nodes.mailbox['c'], 1)
+        return {'iou': self.U_iou(h_cat), 'c': c}
+
+    def apply_node_func(self, nodes):
+        # equation (1), (3), (4)
+        iou = nodes.data['iou'] + self.b_iou
+        i, o, u = th.chunk(iou, 3, 1)
+        i, o, u = th.sigmoid(i), th.sigmoid(o), th.tanh(u)
+        # equation (5)
+        c = i * u + nodes.data['c']
+        # equation (6)
+        h = o * th.tanh(c)
+        return {'h' : h, 'c' : c}
 
 class Trigger_Recognition(nn.Module):
     def __init__(self, event_dim):
