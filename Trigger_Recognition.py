@@ -6,7 +6,6 @@ import torch.nn as nn
 class produce_model(nn.Module):
     def __init__(self, char_dim):
         super(encode, self).__init__()
-        self.conv_out_channel = 64
         self.embedding = nn.Embedding(char_dim, embedding_size)
         self.tree_lstm = nn.Child_sum_treeLSTM()
         
@@ -32,13 +31,10 @@ class Child_sum_TreeLSTMCell(nn.Module):
         return {'iou': self.U_iou(h_cat), 'c': c}
 
     def apply_node_func(self, nodes):
-        # equation (1), (3), (4)
         iou = nodes.data['iou'] + self.b_iou
         i, o, u = th.chunk(iou, 3, 1)
         i, o, u = th.sigmoid(i), th.sigmoid(o), th.tanh(u)
-        # equation (5)
         c = i * u + nodes.data['c']
-        # equation (6)
         h = o * th.tanh(c)
         return {'h' : h, 'c' : c}
 
