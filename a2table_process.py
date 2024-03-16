@@ -2,12 +2,12 @@ import os
 import csv
 path_ = os.path.abspath('.')
 
-for r,_,fs in os.walk(a2_path):
+for r in os.walk(path):
     for f in fs:
-        fpath = os.path.join(a2_path,f)
+        fpath = os.path.join(path,f)
         new_path = os.path.join(target_path,fname.replace('.a2','.csv'))
 
-        csv_f = open(write_path,'wb')
+        csv_file = open(write_path,'wb')
         writer = csv.writer(csv_f)
         writer.writerow(['modification_id','modification_type','dst'])
         csvfile.close()
@@ -31,5 +31,4 @@ for r,_,fs in os.walk(a2_path):
             m_type = line_list[1]
             dt = line_list[2]
             writer.writerow([m_id,m_type,dt])
-            
             line = file_a2.readline()
