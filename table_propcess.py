@@ -7,10 +7,10 @@ if __name__ == '__main__' :
     a2_path = path_ + '/a2'
     target_path = path_ + '/a2_table'
 
-    for root,_,fnames in os.walk(a2_path):
+    for root,_,fnames in os.walk(a2_file):
         for fname in fnames :
 
-            f_path = os.path.join(a2_path,fname)
+            f_path = os.path.join(a2_file,fname)
             write_path = os.path.join(target_path,fname.replace('.a2','.csv'))
             csvfile = open(write_path,'wb')
             writer = csv.writer(csvfile)
@@ -22,31 +22,19 @@ if __name__ == '__main__' :
 
             file_a2 = open(f_path,'r')
             line = file_a2.readline()
-            
-            while line:
-                if line[0] != 'E':
-                    line = file_a2.readline()
-                    continue
 
-                line = line.replace('\n','')
-                line = line.replace('\t',' ')
-                line_list = line.split(' ')
+            line = line.replace('\n','')
+            line = line.replace('\t',' ')
+            line_list = line.split(' ')
 
-                e_id = line_list[0]
-                e_type = line_list[1].split(':')[0]
-                sc = line_list[1].split(':')[1]
+            e_id = line_list[0]
+            e_type = line_list[1].split(':')[0]
+            sc = line_list[1].split(':')[1]
 
-                if line_list[-1] == '': # an event with no argument
-                    writer.writerow([e_id,e_type,sc])
-                    line = file_a2.readline()
-                    continue
+            for i in range(2,len(line_list)):
+                rlt = line_list[i].split(':')[0]
+                dt = line_list[i].split(':')[1]
+                writer.writerow([e_id,e_type,sc,rlt,dt])
+                line = file_a2.read()
 
-                for i in range(2,len(line_list)):
-                    rlt = line_list[i].split(':')[0]
-                    dt = line_list[i].split(':')[1]
-                    writer.writerow([e_id,e_type,sc,rlt,dt])
-
-                line = file_a2.readline()
-
-            file_a2.close()
-            csvfile.close()
+        file.close()
