@@ -12,7 +12,6 @@ for r,_,fs in os.walk(a2_path):
         writer.writerow(['modification_id','modification_type','dst'])
         csvfile.close()
 
-
         with open(write_path,'ab+') as csf_f:
             writer = csv.writer(csv_f)
 
