@@ -3,13 +3,9 @@ import pickle
 import torch
 import torch.nn as nn
 
-class encode_model(nn.Module):
+class produce_model(nn.Module):
     def __init__(self, char_dim):
         super(encode, self).__init__()
-        embedding_size = 16
-        kernel = 5
-        stride = 1
-        padding = 2
         self.conv_out_channel = 64
         self.embedding = nn.Embedding(char_dim, embedding_size)
         self.tree_lstm = nn.Child_sum_treeLSTM()
@@ -50,25 +46,20 @@ class Trigger_Recognition(nn.Module):
     def __init__(self, event_dim):
         super(Trigger_Recognition, self).__init__()
         self.event_dim = event_dim
-        self.BiLSTM_hidden_size = 2*128 
+        self.hidden_size = 2*128 
         self.embedding_size = 16
         tmp_dim = 128
         self.event_embedding = nn.Embedding(event_dim, self.embedding_size)
-        self.linear = nn.Linear(self.BiLSTM_hidden_size+self.embedding_size, tmp_dim)
-        self.linear2 = nn.Linear(tmp_dim, self.event_dim)
+        self.linear = nn.Linear(self.hidden_size+self.embedding_size, tmp_dim)
         self.softmax = nn.LogSoftmax(dim=1)
-        self.dropout = nn.Dropout(p=0.2)
+        self.dropout = nn.Dropout(p=0.18)
 
     def forward(self, output, target=[], infer = True, event_index = event_index['NONE']):
-        ner_output = []
-        ner_emb = []
-        ner_index = []
-
         event_index = torch.LongTensor([[event_index]]) 
         event_emb = self.event_embedding(Variable(event_index)) 
         event_emb = event_emb.view(-1,self.embedding_size)
 
-        for i in range(0,bilstm_output.size()[0]):
+        for i in range(0,output.size()[0]):
             inputs = torch.cat((bilstm_output[i], event_emb), 1) 
             inputs = self.dropout(inputs)
             hidden = F.leaky_relu(self.linear(inputs)) 
