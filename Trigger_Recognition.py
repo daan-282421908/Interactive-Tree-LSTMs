@@ -15,22 +15,22 @@ class produce_model(nn.Module):
         return x
 
 class Child_sum_TreeLSTMCell(nn.Module):
-    def __init__(self, x_size, h_size):
-        self.W_iou = nn.Linear(x_size, 3 * h_size, bias=False)
-        self.U_iou = nn.Linear(2 * h_size, 3 * h_size, bias=False)
-        self.b_iou = nn.Parameter(th.zeros(1, 3 * h_size))
-        self.U_f = nn.Linear(2 * h_size, 2 * h_size)
+    def __init__(self, input_size, input_size):
+        self.W = nn.Linear(x_size, 3 * h_size, bias=False)
+        self.U = nn.Linear(2 * h_size, 3 * h_size, bias=False)
+        self.b = nn.Parameter(th.zeros(1, 3 * h_size))
+        self.U = nn.Linear(2 * h_size, 2 * h_size)
 
-    def message_func(self, edges):
+    def info_func(self, edges):
         return {'h': edges.src['h'], 'c': edges.src['c']}
 
-    def reduce_func(self, nodes):
+    def sum_func(self, nodes):
         h_cat = nodes.mailbox['h'].view(nodes.mailbox['h'].size(0), -1)
         f = th.sigmoid(self.U_f(h_cat)).view(*nodes.mailbox['h'].size())
         c = th.sum(f * nodes.mailbox['c'], 1)
         return {'iou': self.U_iou(h_cat), 'c': c}
 
-    def apply_node_func(self, nodes):
+    def node_func(self, nodes):
         iou = nodes.data['iou'] + self.b_iou
         i, o, u = th.chunk(iou, 3, 1)
         i, o, u = th.sigmoid(i), th.sigmoid(o), th.tanh(u)
@@ -39,12 +39,11 @@ class Child_sum_TreeLSTMCell(nn.Module):
         return {'h' : h, 'c' : c}
 
 class Trigger_Recognition(nn.Module):
-    def __init__(self, event_dim):
+    def __init__(self, trigger_dim):
         super(Trigger_Recognition, self).__init__()
-        self.event_dim = event_dim
-        self.hidden_size = 2*128 
+        self.event_dim = trigger_dim
+        self.hidden_size = 256 
         self.embedding_size = 16
-        tmp_dim = 128
         self.event_embedding = nn.Embedding(event_dim, self.embedding_size)
         self.linear = nn.Linear(self.hidden_size+self.embedding_size, tmp_dim)
         self.softmax = nn.LogSoftmax(dim=1)
@@ -56,7 +55,7 @@ class Trigger_Recognition(nn.Module):
         event_emb = event_emb.view(-1,self.embedding_size)
 
         for i in range(0,output.size()[0]):
-            inputs = torch.cat((bilstm_output[i], event_emb), 1) 
+            inputs = torch.cat((output[i], event_emb), 1) 
             inputs = self.dropout(inputs)
             hidden = F.leaky_relu(self.linear(inputs)) 
             hidden = self.linear2(hidden)
